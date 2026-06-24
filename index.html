@@ -2,49 +2,49 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>Click Pro Game</title>
+<title>Click Game PRO</title>
 
 <style>
 body{
   margin:0;
   font-family: Arial;
-  background:#0f1115;
+  background:#070a10;
   color:white;
   text-align:center;
   overflow:hidden;
 }
 
 h1{
-  margin-top:20px;
   color:#00ffcc;
-}
-
-#gameArea{
-  position:relative;
-  width:100%;
-  height:70vh;
-  border-top:2px solid #222;
-  border-bottom:2px solid #222;
-  overflow:hidden;
-}
-
-#target{
-  position:absolute;
-  width:80px;
-  height:80px;
-  background:radial-gradient(circle,#00ffcc,#0077ff);
-  border-radius:50%;
-  cursor:pointer;
-  transition:0.1s;
-  box-shadow:0 0 20px #00ffcc;
+  margin-top:15px;
 }
 
 .stats{
   display:flex;
   justify-content:center;
-  gap:30px;
-  margin:10px;
+  gap:25px;
   font-size:18px;
+  margin:10px;
+}
+
+#gameArea{
+  position:relative;
+  width:100%;
+  height:75vh;
+  border-top:1px solid #222;
+  border-bottom:1px solid #222;
+  overflow:hidden;
+}
+
+#target{
+  position:absolute;
+  width:70px;
+  height:70px;
+  border-radius:50%;
+  background:radial-gradient(circle,#00ffcc,#0066ff);
+  box-shadow:0 0 25px #00ffcc;
+  cursor:pointer;
+  transition:0.1s;
 }
 
 button{
@@ -56,43 +56,67 @@ button{
   cursor:pointer;
 }
 
-button:hover{
-  transform:scale(1.05);
+#flash{
+  position:absolute;
+  width:100%;
+  height:100%;
+  background:white;
+  opacity:0;
+  pointer-events:none;
+}
+
+.explosion{
+  position:absolute;
+  width:20px;
+  height:20px;
+  background:#00ffcc;
+  border-radius:50%;
+  animation:boom 0.4s ease-out forwards;
+}
+
+@keyframes boom{
+  0%{transform:scale(1); opacity:1;}
+  100%{transform:scale(5); opacity:0;}
 }
 </style>
 </head>
 
 <body>
 
-<h1>🎮 Click Pro Game</h1>
+<h1>🎮 Click Game PRO</h1>
 
 <div class="stats">
-  <div>⏱ الوقت: <span id="time">15</span></div>
-  <div>🎯 النقاط: <span id="score">0</span></div>
-  <div>🏆 أعلى نتيجة: <span id="best">0</span></div>
+  <div>⏱ <span id="time">20</span></div>
+  <div>🎯 <span id="score">0</span></div>
+  <div>🔥 Combo <span id="combo">0</span></div>
+  <div>🏆 Best <span id="best">0</span></div>
 </div>
 
-<button onclick="startGame()">ابدأ اللعبة</button>
+<button onclick="startGame()">ابدأ</button>
 
 <div id="gameArea">
+  <div id="flash"></div>
   <div id="target" onclick="hit()"></div>
 </div>
 
 <script>
 let score = 0;
-let time = 15;
+let time = 20;
+let combo = 0;
+let speed = 1200;
 let timer;
+let moveTimer;
 let playing = false;
 
 const target = document.getElementById("target");
-const gameArea = document.getElementById("gameArea");
+const flash = document.getElementById("flash");
 
 let best = localStorage.getItem("bestScore") || 0;
 document.getElementById("best").innerText = best;
 
 function randomPosition(){
-  const x = Math.random() * (window.innerWidth - 100);
-  const y = Math.random() * (gameArea.clientHeight - 100);
+  const x = Math.random() * (window.innerWidth - 80);
+  const y = Math.random() * (window.innerHeight * 0.75 - 80);
 
   target.style.left = x + "px";
   target.style.top = y + "px";
@@ -100,13 +124,17 @@ function randomPosition(){
 
 function startGame(){
   score = 0;
-  time = 15;
+  combo = 0;
+  time = 20;
+  speed = 1200;
   playing = true;
 
   document.getElementById("score").innerText = score;
+  document.getElementById("combo").innerText = combo;
   document.getElementById("time").innerText = time;
 
   clearInterval(timer);
+  clearInterval(moveTimer);
 
   randomPosition();
 
@@ -118,25 +146,58 @@ function startGame(){
       endGame();
     }
   }, 1000);
+
+  moveTimer = setInterval(() => {
+    if(playing) randomPosition();
+  }, speed);
 }
 
 function hit(){
   if(!playing) return;
 
   score++;
-  document.getElementById("score").innerText = score;
+  combo++;
 
-  // تحريك الهدف أسرع مع الوقت
+  document.getElementById("score").innerText = score;
+  document.getElementById("combo").innerText = combo;
+
+  // زيادة السرعة مع الوقت
+  if(score % 5 === 0 && speed > 400){
+    speed -= 100;
+    clearInterval(moveTimer);
+    moveTimer = setInterval(() => {
+      if(playing) randomPosition();
+    }, speed);
+  }
+
   randomPosition();
 
-  // تأثير بصري
-  target.style.transform = "scale(0.8)";
-  setTimeout(()=> target.style.transform="scale(1)",100);
+  explosionEffect();
+  flashEffect();
+}
+
+function explosionEffect(){
+  const boom = document.createElement("div");
+  boom.className = "explosion";
+
+  const rect = target.getBoundingClientRect();
+  boom.style.left = rect.left + "px";
+  boom.style.top = rect.top + "px";
+
+  document.getElementById("gameArea").appendChild(boom);
+
+  setTimeout(() => boom.remove(), 400);
+}
+
+function flashEffect(){
+  flash.style.opacity = 0.4;
+  setTimeout(()=> flash.style.opacity = 0, 100);
 }
 
 function endGame(){
-  clearInterval(timer);
   playing = false;
+  clearInterval(timer);
+  clearInterval(moveTimer);
 
   if(score > best){
     best = score;
